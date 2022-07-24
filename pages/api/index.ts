@@ -7,5 +7,7 @@ export default async function HomePage(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  throwIn(req, res)?.then((req, res) => res.send("I'm in call back function"));
+  throwIn(req, res)?.then((req, res) => {
+    res.send("Ending");
+  });
 }

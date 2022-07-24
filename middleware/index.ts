@@ -1,10 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import preAPI from "../preAPI";
+import Progress from "./progress";
 
 export type MiddlewareFuncType = (
   req: NextApiRequest,
   res: NextApiResponse,
-  next: Function
+  progress: Progress
 ) => any;
 
 export type FuncType = (req: NextApiRequest, res: NextApiResponse) => any;
@@ -15,34 +16,9 @@ class Middleware {
   static #stringToFunc = new Map<string, StrToFuncType>();
   private static requestPkg: NextApiRequest;
   private static responsePkg: NextApiResponse;
-  private static nowFuncId = 0;
   private static funcArray: StrToFuncType | undefined;
-  private static ableToAccessWorkFunc: boolean;
-  constructor() {}
 
-  private static next() {
-    if (
-      Middleware.funcArray &&
-      Middleware.nowFuncId > Middleware.funcArray.length
-    )
-      return;
-    if (
-      Middleware.funcArray &&
-      Middleware.nowFuncId === Middleware.funcArray.length
-    ) {
-      Middleware.ableToAccessWorkFunc = true;
-      return;
-    }
-    console.log(Middleware.nowFuncId, Middleware.funcArray?.length);
-    if (Middleware.funcArray) {
-      Middleware.funcArray[Middleware.nowFuncId++](
-        Middleware.requestPkg,
-        Middleware.responsePkg,
-        Middleware.next
-      );
-      return;
-    }
-  }
+  constructor() {}
 
   public static use(path: string, middlewareFunc: MiddlewareFuncType) {
     if (!Middleware.#stringToFunc.has(path))
@@ -52,21 +28,17 @@ class Middleware {
 
   public static throwIn(req: NextApiRequest, res: NextApiResponse) {
     preAPI();
+    console.log(Middleware.funcArray?.length);
     if (!req.url) return;
-    Middleware.ableToAccessWorkFunc = false;
-    Middleware.funcArray = Middleware.#stringToFunc.get(req.url);
-    if (Middleware.funcArray) {
-      Middleware.nowFuncId = 0;
-      Middleware.requestPkg = req;
-      Middleware.responsePkg = res;
-      Middleware.next();
+    if (Middleware.#stringToFunc.get(req.url) !== undefined) {
+      Middleware.funcArray = Middleware.#stringToFunc.get(req.url);
     }
-    return Middleware;
-  }
-
-  public static then(workFunc: FuncType) {
-    if (Middleware.ableToAccessWorkFunc)
-      workFunc(Middleware.requestPkg, Middleware.responsePkg);
+    if (Middleware.funcArray) {
+      const progress = new Progress(Middleware.funcArray, req, res);
+      progress.next();
+      return progress;
+    }
+    return;
   }
 
   public static app() {

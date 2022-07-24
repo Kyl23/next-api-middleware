@@ -2,13 +2,13 @@ import Middleware from "../../middleware";
 
 export default function preIndexAPI() {
   const { use } = Middleware.app();
-  use("/api", (req, res, next) => {
+  use("/api", (req, res, progress) => {
     console.log("I am the first one");
-    next();
+    progress.next();
   });
 
-  use("/api", (req, res, next) => {
-    console.log("I am second ");
-    next();
+  use("/api", (req, res, progress) => {
+    console.log("I am the second");
+    res.send("I kill the end");
   });
 }
